@@ -79,6 +79,31 @@ a:hover {
   text-transform: uppercase;
 }
 
+.badge-open {
+  background: rgba(59, 130, 246, 0.18);
+  color: #60a5fa;
+}
+
+.badge-acknowledged {
+  background: rgba(250, 204, 21, 0.18);
+  color: #facc15;
+}
+
+.badge-mitigating {
+  background: rgba(249, 115, 22, 0.2);
+  color: #f97316;
+}
+
+.badge-escalated {
+  background: rgba(239, 68, 68, 0.2);
+  color: #f87171;
+}
+
+.badge-resolved {
+  background: rgba(52, 211, 153, 0.2);
+  color: #34d399;
+}
+
 .badge-success {
   background: rgba(34, 211, 238, 0.16);
   color: #22d3ee;
@@ -424,6 +449,48 @@ a:hover {
 .btn-outline:hover {
   border-color: rgba(148, 163, 184, 0.4);
   transform: translateY(-2px);
+}
+
+.simulate-cta {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  border-color: rgba(56, 189, 248, 0.55);
+  background: rgba(15, 23, 42, 0.4);
+}
+
+.simulate-cta .risk-chip {
+  display: inline-flex;
+  align-items: center;
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: rgba(56, 189, 248, 0.18);
+  color: var(--accent-strong);
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.simulate-cta.armed {
+  border-color: rgba(239, 68, 68, 0.55);
+  box-shadow: 0 0 0 2px rgba(239, 68, 68, 0.15);
+}
+
+.simulate-cta.armed .risk-chip {
+  background: rgba(239, 68, 68, 0.22);
+  color: #fca5a5;
+}
+
+.simulation-risk-indicator {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 6px;
+}
+
+.simulation-risk-indicator .label {
+  font-size: 0.7rem;
 }
 
 .btn-ghost {

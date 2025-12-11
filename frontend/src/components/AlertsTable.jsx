@@ -21,14 +21,21 @@ const AlertsTable = ({ alerts = [], onAction }) => (
           <th scope="col">Pipeline</th>
           <th scope="col">Severity</th>
           <th scope="col">Risk</th>
+          <th scope="col">Status</th>
           <th scope="col">Opened</th>
           <th scope="col">Impact</th>
           <th scope="col">Actions</th>
         </tr>
       </thead>
       <tbody>
-        {alerts.map((alert) => (
-          <tr key={alert.id}>
+        {alerts.map((alert) => {
+          const statusLabel = alert.status || 'Open';
+          const statusSlug = statusLabel.toLowerCase().replace(/\s+/g, '-');
+          const knownStatuses = ['open', 'acknowledged', 'mitigating', 'escalated', 'resolved'];
+          const statusClass = `badge ${knownStatuses.includes(statusSlug) ? `badge-${statusSlug}` : 'badge-idle'}`;
+
+          return (
+            <tr key={alert.id}>
             <td>
               <strong>{alert.title}</strong>
               <div className="muted">{alert.id}</div>
@@ -36,15 +43,20 @@ const AlertsTable = ({ alerts = [], onAction }) => (
             <td>{alert.pipelineId}</td>
             <td>{alert.severity}</td>
             <td><RiskBadge score={alert.riskScore} size="sm" /></td>
+            <td><span className={statusClass}>{statusLabel}</span></td>
             <td>{formatDateTime(alert.createdAt)}</td>
             <td>{alert.impact}</td>
             <td className="alerts-actions-cell">
               <button type="button" className="btn-link" onClick={() => onAction?.('ack', alert)}>Acknowledge</button>
               <button type="button" className="btn-link" onClick={() => onAction?.('rollback', alert)}>Rollback</button>
               <button type="button" className="btn-link" onClick={() => onAction?.('ticket', alert)}>Create ticket</button>
+              {statusLabel !== 'Resolved' && (
+                <button type="button" className="btn-link" onClick={() => onAction?.('resolve', alert)}>Resolve</button>
+              )}
             </td>
           </tr>
-        ))}
+          );
+        })}
       </tbody>
     </table>
   </section>

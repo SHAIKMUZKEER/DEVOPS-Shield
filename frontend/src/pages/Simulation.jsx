@@ -24,7 +24,7 @@ const eventTemplates = {
   ]
 };
 
-const Simulation = ({ scenarios = [], history = [], onIncident }) => {
+const Simulation = ({ scenarios = [], history = [], onIncident, onReset }) => {
   const [riskHistory, setRiskHistory] = useState(history);
   const [activeScenarioId, setActiveScenarioId] = useState(null);
   const [events, setEvents] = useState([]);
@@ -32,6 +32,7 @@ const Simulation = ({ scenarios = [], history = [], onIncident }) => {
   const [backendStatus, setBackendStatus] = useState('checking');
   const [lastRunAt, setLastRunAt] = useState(null);
   const [incidentSummary, setIncidentSummary] = useState(null);
+  const [currentRiskScore, setCurrentRiskScore] = useState(0);
 
   const activeScenario = useMemo(
     () => scenarios.find((scenario) => scenario.id === activeScenarioId) || null,
@@ -44,6 +45,7 @@ const Simulation = ({ scenarios = [], history = [], onIncident }) => {
     setEvents([]);
     setBackendStatus('checking');
     setIncidentSummary(null);
+    setCurrentRiskScore(0);
 
     const timeline = [];
     const addEvent = (phase, detail, timestamp = new Date()) => {
@@ -254,6 +256,7 @@ const Simulation = ({ scenarios = [], history = [], onIncident }) => {
       setEvents(timeline);
 
       const normalizedRisk = clampRisk(computedRisk) / 100;
+      const finalRiskScore = Math.max(0, Math.round(normalizedRisk * 100));
       const fraudRisk = fraudEvent?.risk_score ? Math.max(fraudEvent.risk_score * 100, 1) : computedRisk;
       const riskPoint = {
         date: new Date().toISOString().split('T')[0],
@@ -271,13 +274,14 @@ const Simulation = ({ scenarios = [], history = [], onIncident }) => {
         scenarioId: scenario.id,
         scenarioName: scenario.name,
         pipelineId: scenario.pipeline || 'global-secops',
-        riskScore: Math.round(normalizedRisk * 100),
+        riskScore: finalRiskScore,
         alerts: riskPoint.alerts,
         timestamp: new Date().toISOString(),
         message: timeline[0]?.detail || scenario.description
       };
 
       setIncidentSummary(incident);
+      setCurrentRiskScore(finalRiskScore);
       onIncident?.(incident);
     }
   };
@@ -288,6 +292,8 @@ const Simulation = ({ scenarios = [], history = [], onIncident }) => {
     setLastRunAt(null);
     setBackendStatus('checking');
     setIncidentSummary(null);
+    setCurrentRiskScore(0);
+    onReset?.();
   };
 
   return (
@@ -298,9 +304,16 @@ const Simulation = ({ scenarios = [], history = [], onIncident }) => {
             <h2>Attack simulation lab</h2>
             <p className="muted">Recreate real-world supply-chain incidents and watch DevOps Shield contain the breach in real time.</p>
           </div>
-          {activeScenario && <RiskBadge score={activeScenario.riskScore} level={activeScenario.type} size="lg" />}
+          <div className="simulation-risk-indicator">
+            <span className="label">Simulated risk</span>
+            <RiskBadge score={currentRiskScore} size="lg" />
+          </div>
         </header>
         <div className="simulation-meta">
+          <div>
+            <span className="label">Current risk</span>
+            <span>{currentRiskScore}%</span>
+          </div>
           <div>
             <span className="label">Backend status</span>
             <span>{backendStatus}</span>

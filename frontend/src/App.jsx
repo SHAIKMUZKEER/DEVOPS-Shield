@@ -54,6 +54,7 @@ const App = () => {
   const [authState, setAuthState] = useState(authSession);
   const [integrationsState, setIntegrationsState] = useState(integrations);
   const [latestIncident, setLatestIncident] = useState(null);
+  const [simulationRisk, setSimulationRisk] = useState(0);
 
   const onSelectPipeline = (pipelineId) => {
     setActivePipelineId(pipelineId);
@@ -71,7 +72,37 @@ const App = () => {
   };
 
   const onAlertAction = (action, payload) => {
-    console.info('Alert action', action, payload?.id);
+    if (!payload?.id) {
+      return;
+    }
+
+    const alertId = payload.id;
+    const updateStatus = (status) => setAlertsState((prev) => prev.map((alert) => (
+      alert.id === alertId ? { ...alert, status } : alert
+    )));
+
+    switch (action) {
+      case 'ack':
+        updateStatus('Acknowledged');
+        break;
+      case 'resolve':
+        updateStatus('Resolved');
+        if (latestIncident?.id?.toLowerCase() === alertId.toLowerCase()) {
+          setLatestIncident(null);
+          setSimulationRisk(0);
+        }
+        break;
+      case 'rollback':
+        updateStatus('Mitigating');
+        break;
+      case 'ticket':
+        updateStatus('Escalated');
+        break;
+      default:
+        break;
+    }
+
+    console.info('Alert action', action, alertId);
   };
 
   const onExport = (format, record) => {
@@ -136,7 +167,10 @@ const App = () => {
   };
 
   const handleSimulationIncident = (incident) => {
-    const severity = incident.riskScore >= 90 ? 'Critical' : incident.riskScore >= 75 ? 'High' : 'Medium';
+    const normalizedRisk = Number.isFinite(incident.riskScore)
+      ? Math.max(0, Math.round(incident.riskScore))
+      : 0;
+    const severity = normalizedRisk >= 90 ? 'Critical' : normalizedRisk >= 75 ? 'High' : normalizedRisk >= 50 ? 'Medium' : 'Low';
     const newAlert = {
       id: incident.id.toLowerCase(),
       pipelineId: incident.pipelineId,
@@ -144,12 +178,17 @@ const App = () => {
       severity,
       createdAt: incident.timestamp,
       status: 'Open',
-      riskScore: incident.riskScore,
+      riskScore: normalizedRisk,
       impact: incident.message || 'Automated drill impact pending review'
     };
 
-    setAlertsState((prev) => [newAlert, ...prev]);
-    setLatestIncident({ ...incident, severity });
+    setAlertsState((prev) => [newAlert, ...prev.filter((alert) => alert.id !== newAlert.id)]);
+    setLatestIncident({ ...incident, riskScore: normalizedRisk, severity });
+    setSimulationRisk(normalizedRisk);
+  };
+
+  const handleSimulationReset = () => {
+    setSimulationRisk(0);
   };
 
   let content;
@@ -211,6 +250,7 @@ const App = () => {
           scenarios={attackScenarios}
           history={simulationRiskHistory}
           onIncident={handleSimulationIncident}
+          onReset={handleSimulationReset}
         />
       );
       break;
@@ -255,7 +295,14 @@ const App = () => {
             <p className="muted">Production-ready CI/CD risk observability.</p>
           </div>
           <div className="header-actions">
-            <button type="button" className="btn-outline" onClick={() => setView(VIEWS.SIMULATION)}>Simulate attack</button>
+            <button
+              type="button"
+              className={`btn-outline simulate-cta ${simulationRisk > 0 ? 'armed' : ''}`}
+              onClick={() => setView(VIEWS.SIMULATION)}
+            >
+              Simulate attack
+              <span className="risk-chip">{Math.max(0, Math.round(simulationRisk))}% risk</span>
+            </button>
             <button type="button" className="btn-primary" onClick={() => setView(VIEWS.GITHUB)}>Connect GitHub</button>
           </div>
         </header>
