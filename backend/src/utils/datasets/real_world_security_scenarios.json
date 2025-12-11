@@ -1,0 +1,38 @@
+{
+  "version": "1.0",
+  "last_updated": "2025-12-11",
+  "source": "REAL_WORLD_SECURITY_SOLUTIONS.md",
+  "scenarios": [
+    {
+      "id": "solarwinds_supply_chain",
+      "title": "SolarWinds Supply Chain Compromise",
+      "attack_type": "Supply Chain",
+      "impacted_orgs": 18000,
+      "controls": ["immutable_build_hashes", "dependency_hash_verification", "blockchain_evidence_anchoring"],
+      "prevention_rate": 0.95
+    },
+    {
+      "id": "codecov_bash_uploader",
+      "title": "Codecov Bash Uploader Tampering",
+      "attack_type": "Build Script Tampering",
+      "impacted_orgs": 1000,
+      "controls": ["script_signature_verification", "hash_chain_logging", "webhook_signature_validation"],
+      "prevention_rate": 0.97
+    },
+    {
+      "id": "github_oauth_token_leak",
+      "title": "GitHub OAuth Token Leak",
+      "attack_type": "Credential Exposure",
+      "impacted_users": 1000000,
+      "controls": ["secret_scanning", "least_privilege", "MFA_enforcement"],
+      "prevention_rate": 0.92
+    },
+    {
+      "id": "circleci_session_compromise",
+      "title": "CircleCI Session Compromise",
+      "attack_type": "Session Hijack",
+      "controls": ["short_lived_tokens", "device_fingerprint", "anomaly_detection"],
+      "prevention_rate": 0.90
+    }
+  ]
+}

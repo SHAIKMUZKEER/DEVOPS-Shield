@@ -11,6 +11,18 @@ const styles = {
     color: '#e2e8f0',
     minHeight: '100vh'
   },
+  backButton: {
+    display: 'inline-flex',
+    alignItems: 'center',
+    gap: '8px',
+    marginBottom: '16px',
+    padding: '8px 16px',
+    borderRadius: '999px',
+    border: '1px solid #475569',
+    background: 'rgba(15, 23, 42, 0.6)',
+    color: '#93c5fd',
+    cursor: 'pointer'
+  },
   header: {
     background: 'rgba(15, 23, 42, 0.9)',
     border: '1px solid #334155',
@@ -64,7 +76,7 @@ const styles = {
   }
 };
 
-const Alerts = () => {
+const Alerts = ({ onBack }) => {
   const [alerts, setAlerts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [expandedId, setExpandedId] = useState(null);
@@ -178,6 +190,11 @@ const Alerts = () => {
 
   return (
     <div style={styles.container}>
+      {onBack && (
+        <button type="button" style={styles.backButton} onClick={onBack}>
+          ← Back to overview
+        </button>
+      )}
       
       {/* HEADER */}
       <div style={styles.header}>

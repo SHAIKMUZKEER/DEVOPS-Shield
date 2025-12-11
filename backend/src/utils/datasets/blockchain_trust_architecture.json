@@ -1,0 +1,35 @@
+{
+  "version": "1.1",
+  "last_updated": "2025-12-11",
+  "source": "BLOCKCHAIN_TRUST_ARCHITECTURE.md",
+  "trust_layers": [
+    "Public Verification",
+    "Regulatory Compliance",
+    "Organizational Trust",
+    "Operational Trust",
+    "Cryptographic Trust"
+  ],
+  "block_fields": [
+    "timestamp",
+    "user_id",
+    "event_type",
+    "resource",
+    "metadata",
+    "previous_hash",
+    "current_hash",
+    "signature"
+  ],
+  "ci_cd_flow": [
+    "commit_signed",
+    "build_logged",
+    "artifact_hashed",
+    "approvals_logged",
+    "deploy_logged"
+  ],
+  "algorithms": {
+    "hash": "SHA-256",
+    "signature": "HMAC-SHA256",
+    "kdf": "PBKDF2",
+    "encryption": "Fernet"
+  }
+}

@@ -1,0 +1,64 @@
+{
+  "test": {
+    "baseline": {
+      "avg_commit_size": 0.0,
+      "avg_files_changed": 0.0,
+      "typical_hours": "{20}",
+      "common_file_types": "set()",
+      "commit_frequency": 0,
+      "last_commit_time": null,
+      "trusted_devices": "{'dev1'}",
+      "trusted_ips": "{'127.0.0.1'}"
+    },
+    "history": [
+      {
+        "commit_sha": "abc",
+        "timestamp": 1765464199.621019,
+        "files_changed": [],
+        "lines_added": 0,
+        "lines_deleted": 0,
+        "content": {}
+      }
+    ],
+    "risk_score": 0.0
+  },
+  "demo@company.com": {
+    "baseline": {
+      "avg_commit_size": 0.0,
+      "avg_files_changed": 0.0,
+      "typical_hours": "{20}",
+      "common_file_types": "set()",
+      "commit_frequency": 0,
+      "last_commit_time": null,
+      "trusted_devices": "{'laptop-demo-001'}",
+      "trusted_ips": "{'192.168.1.100'}"
+    },
+    "history": [
+      {
+        "commit_sha": "abc123def456789",
+        "timestamp": 1765464402.882428,
+        "files_changed": [],
+        "lines_added": 0,
+        "lines_deleted": 0,
+        "content": {}
+      },
+      {
+        "commit_sha": "abc123def456789",
+        "timestamp": 1765464903.850592,
+        "files_changed": [],
+        "lines_added": 0,
+        "lines_deleted": 0,
+        "content": {}
+      },
+      {
+        "commit_sha": "abc123def456789",
+        "timestamp": 1765466033.798819,
+        "files_changed": [],
+        "lines_added": 0,
+        "lines_deleted": 0,
+        "content": {}
+      }
+    ],
+    "risk_score": 0.0
+  }
+}
