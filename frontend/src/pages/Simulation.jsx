@@ -2,6 +2,7 @@ import React, { useMemo, useState } from 'react';
 import RiskBadge from '../components/RiskBadge';
 import RiskGraph from '../components/RiskGraph';
 import zeroTrustService from '../api/zeroTrustService';
+import simulateController from '../api/simulateController';
 import { formatDateTime } from '../utils/dateHelpers';
 
 const eventTemplates = {
@@ -40,39 +41,236 @@ const Simulation = ({ scenarios = [], history = [] }) => {
     setLoadingScenario(true);
     setActiveScenarioId(scenario.id);
     setEvents([]);
+    setBackendStatus('checking');
+
+    const timeline = [];
+    const addEvent = (phase, detail, timestamp = new Date()) => {
+      timeline.push({
+        phase,
+        detail,
+        timestamp: timestamp instanceof Date ? timestamp.toISOString() : timestamp
+      });
+    };
+
+    const clampRisk = (value) => Math.min(100, Math.max(0, value));
+    const randomHex = (length = 16) => Array.from({ length }, () => Math.floor(Math.random() * 16).toString(16)).join('');
+
+    let computedRisk = scenario.riskScore ?? 60;
+    let fraudEvent = null;
 
     try {
-      await zeroTrustService.healthCheck();
-      setBackendStatus('healthy');
+      const health = await zeroTrustService.healthCheck();
+      const status = health?.status ?? 'healthy';
+      setBackendStatus(status);
+      addEvent('Health Check', `Core services responded: ${status}`);
     } catch (error) {
       console.error('Health check failed before simulation', error);
       setBackendStatus('unavailable');
+      addEvent('Health Check', `Health check failed: ${error.message || 'backend unreachable'}`);
     }
 
-    const template = eventTemplates[scenario.id] || [];
-    const generatedEvents = template.map((step, index) => ({
-      ...step,
-      timestamp: new Date(Date.now() + index * 1000).toISOString()
-    }));
+    try {
+      const response = await simulateController.simulateFraud();
+      fraudEvent = response?.fraud_event || response?.data?.fraud_event || response;
 
-    setEvents(generatedEvents);
+      if (fraudEvent?.event_id) {
+        const fraudRisk = typeof fraudEvent.risk_score === 'number' ? fraudEvent.risk_score * 100 : 0;
+        if (!Number.isNaN(fraudRisk)) {
+          computedRisk = Math.round((computedRisk + fraudRisk) / 2);
+        }
+        addEvent(
+          'Fraud Signal',
+          `${fraudEvent.message || 'Simulated fraudulent activity detected'} · risk ${(fraudRisk || computedRisk).toFixed(0)}%`,
+          fraudEvent.timestamp || new Date().toISOString()
+        );
+      } else {
+        addEvent('Fraud Signal', 'Simulation service responded without details');
+      }
+    } catch (error) {
+      console.error('Simulation API error', error);
+      addEvent('Fraud Signal', `Simulation API error: ${error.message || 'Unknown failure'}`);
+    }
 
-    const riskPoint = {
-      date: new Date().toISOString().split('T')[0],
-      riskScore: Math.min(1, Math.max(0, scenario.riskScore / 100)),
-      analyses: 24 + Math.floor(Math.random() * 8),
-      alerts: Math.max(1, Math.round(scenario.riskScore / 20))
+    const handleScenario = async () => {
+      switch (scenario.id) {
+        case 'supply-chain': {
+          try {
+            const manifest = {
+              'trusted-core': '1.4.2',
+              'zero-day-kit': '4.2.1',
+              '@internal/telemetry': '2.1.0'
+            };
+            const deps = await zeroTrustService.checkDependencies(manifest);
+            const blocked = deps?.blocked_packages?.length || 0;
+            addEvent(
+              'Dependency Sentinel',
+              blocked
+                ? `Blocked packages: ${deps.blocked_packages.join(', ')}`
+                : 'All packages matched SBOM baseline'
+            );
+            computedRisk = clampRisk(computedRisk + (blocked ? 12 : -8));
+          } catch (error) {
+            console.error('Dependency check failed', error);
+            addEvent('Dependency Sentinel', `Dependency service error: ${error.message || 'Unable to verify packages'}`);
+          }
+
+          try {
+            const ledger = await zeroTrustService.recordToBlockchain({
+              step: 'supply_chain_response',
+              hash: randomHex(64),
+              previous_hash: randomHex(64),
+              metadata: {
+                scenario: scenario.id,
+                pipeline_id: scenario.pipeline || 'global-supply-chain',
+                initiated_by: 'attack-simulator'
+              }
+            });
+            addEvent(
+              'Blockchain Ledger',
+              ledger?.recorded
+                ? 'Immutable ledger entry stored for forensic audit'
+                : 'Ledger rejected the record — investigate integrity'
+            );
+            if (!ledger?.recorded) {
+              computedRisk = clampRisk(computedRisk + 6);
+            }
+          } catch (error) {
+            console.error('Ledger write failed', error);
+            addEvent('Blockchain Ledger', `Ledger service error: ${error.message || 'Unable to record event'}`);
+            computedRisk = clampRisk(computedRisk + 8);
+          }
+          break;
+        }
+
+        case 'secret-leak': {
+          try {
+            const sourceVerdict = await zeroTrustService.verifySourceIntegrity({
+              developer_id: 'contractor-447',
+              commit_sha: randomHex(40),
+              device_id: 'runner-12f',
+              ip_address: '185.44.12.9',
+              timestamp: new Date().toISOString(),
+              has_secrets: true
+            });
+            addEvent(
+              'Source Integrity',
+              `Identity score ${(sourceVerdict.identity_score * 100).toFixed(1)}% · ${sourceVerdict.approved ? 'Approved' : 'Blocked'}${sourceVerdict.secrets_found ? ' · Secrets detected' : ''}`
+            );
+            computedRisk = clampRisk(
+              computedRisk + (sourceVerdict.secrets_found ? 18 : sourceVerdict.approved ? -10 : 5)
+            );
+          } catch (error) {
+            console.error('Source integrity check failed', error);
+            addEvent('Source Integrity', `Verification error: ${error.message || 'Identity model unreachable'}`);
+            computedRisk = clampRisk(computedRisk + 10);
+          }
+
+          try {
+            const ledger = await zeroTrustService.recordToBlockchain({
+              step: 'secret_rotation',
+              hash: randomHex(64),
+              previous_hash: randomHex(64),
+              metadata: {
+                scenario: scenario.id,
+                action: 'credential-rotation',
+                rotation_window_minutes: 5
+              }
+            });
+            addEvent(
+              'Credential Ledger',
+              ledger?.recorded
+                ? 'Secret rotation recorded immutably'
+                : 'Ledger write skipped — verify backup rotation'
+            );
+          } catch (error) {
+            console.error('Credential ledger write failed', error);
+            addEvent('Credential Ledger', `Ledger error: ${error.message || 'Audit trail unavailable'}`);
+          }
+          break;
+        }
+
+        case 'rogue-runner': {
+          try {
+            const artifact = await zeroTrustService.verifyArtifact({
+              artifact_hash: randomHex(96),
+              signature: `sig-${randomHex(48)}`
+            });
+            addEvent(
+              'Artifact Hardening',
+              artifact?.approved
+                ? 'Artifact signature verified and sandbox clean'
+                : 'Artifact verification blocked — signature mismatch'
+            );
+            computedRisk = clampRisk(computedRisk + (artifact?.approved ? -12 : 15));
+          } catch (error) {
+            console.error('Artifact verification failed', error);
+            addEvent('Artifact Hardening', `Verification error: ${error.message || 'Sandbox offline'}`);
+            computedRisk = clampRisk(computedRisk + 12);
+          }
+
+          try {
+            const deps = await zeroTrustService.checkDependencies({
+              '@security/kernel-patch': '5.17.12',
+              'runner-image': '2025.12.01',
+              'rogue-runner': 'latest'
+            });
+            const rogueBlocked = deps?.blocked_packages?.includes('rogue-runner');
+            addEvent(
+              'Runner Integrity',
+              rogueBlocked
+                ? 'Untrusted runner binary quarantined'
+                : 'Runner packages align with baseline'
+            );
+            computedRisk = clampRisk(computedRisk + (rogueBlocked ? -14 : 6));
+          } catch (error) {
+            console.error('Runner dependency check failed', error);
+            addEvent('Runner Integrity', `Runner verification error: ${error.message || 'Unable to inspect image'}`);
+          }
+          break;
+        }
+
+        default:
+          break;
+      }
     };
 
-    setRiskHistory((prev) => [...prev, riskPoint]);
-    setLastRunAt(new Date().toISOString());
-    setLoadingScenario(false);
+    try {
+      await handleScenario();
+    } catch (error) {
+      console.error('Scenario execution failed', error);
+      addEvent('Simulation', `Scenario execution failed: ${error.message || 'Unexpected error'}`);
+      computedRisk = clampRisk(computedRisk + 6);
+    } finally {
+      const template = eventTemplates[scenario.id] || [];
+      const existingPhases = new Set(timeline.map((event) => event.phase));
+      template.forEach((step, index) => {
+        if (!existingPhases.has(step.phase)) {
+          addEvent(step.phase, step.detail, new Date(Date.now() + (index + 1) * 1000));
+        }
+      });
+
+      setEvents(timeline);
+
+      const normalizedRisk = clampRisk(computedRisk) / 100;
+      const fraudRisk = fraudEvent?.risk_score ? Math.max(fraudEvent.risk_score * 100, 1) : computedRisk;
+      const riskPoint = {
+        date: new Date().toISOString().split('T')[0],
+        riskScore: normalizedRisk,
+        analyses: 18 + Math.round(fraudRisk / 10),
+        alerts: Math.max(1, Math.round(normalizedRisk * 12))
+      };
+
+      setRiskHistory((prev) => [...prev, riskPoint]);
+      setLastRunAt(new Date().toISOString());
+      setLoadingScenario(false);
+    }
   };
 
   const resetSimulation = () => {
     setActiveScenarioId(null);
     setEvents([]);
     setLastRunAt(null);
+    setBackendStatus('checking');
   };
 
   return (

@@ -185,7 +185,7 @@ const ZeroTrustDashboard = ({ onBack }) => {
           </button>
         )}
         <h1>🛡️ Zero Trust CI/CD Pipeline</h1>
-        <p className="subtitle">Immutable Security Layer: Commit -> Build -> Deploy</p>
+        <p className="subtitle">Immutable Security Layer: Commit -&gt; Build -&gt; Deploy</p>
       </div>
 
       <div className="status-grid">
@@ -274,8 +274,8 @@ const ZeroTrustDashboard = ({ onBack }) => {
                     <>
                       <div className="result-item">
                         <span>Identity Score:</span>
-                        <span className={stageResults[stage.id].identity_score > 0.8 ? 'success' : 'warning'}>
-                          {(stageResults[stage.id].identity_score * 100).toFixed(0)}%
+                        <span className={(stageResults[stage.id].identity_score ?? 0) > 0.8 ? 'success' : 'warning'}>
+                          {((stageResults[stage.id].identity_score ?? 0) * 100).toFixed(0)}%
                         </span>
                       </div>
                       <div className="result-item">
@@ -300,8 +300,8 @@ const ZeroTrustDashboard = ({ onBack }) => {
                       </div>
                       <div className="result-item">
                         <span>Blocked Packages:</span>
-                        <span className={stageResults[stage.id].blocked_packages.length > 0 ? 'warning' : 'success'}>
-                          {stageResults[stage.id].blocked_packages.length}
+                        <span className={(stageResults[stage.id].blocked_packages?.length ?? 0) > 0 ? 'warning' : 'success'}>
+                          {stageResults[stage.id].blocked_packages?.length ?? 0}
                         </span>
                       </div>
                       <div className="result-item">
@@ -316,13 +316,13 @@ const ZeroTrustDashboard = ({ onBack }) => {
                     <>
                       <div className="result-item">
                         <span>Recorded:</span>
-                        <span className="success">
+                        <span className={stageResults[stage.id].recorded ? 'success' : 'warning'}>
                           {stageResults[stage.id].recorded ? '✅ Yes' : '❌ No'}
                         </span>
                       </div>
                       <div className="result-item">
                         <span>Chain Valid:</span>
-                        <span className="success">
+                        <span className={stageResults[stage.id].chain_valid ? 'success' : 'warning'}>
                           {stageResults[stage.id].chain_valid ? '✅ Yes' : '❌ No'}
                         </span>
                       </div>

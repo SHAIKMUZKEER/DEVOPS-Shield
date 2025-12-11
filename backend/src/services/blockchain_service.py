@@ -7,8 +7,15 @@ import json
 import time
 from datetime import datetime
 from typing import Optional, Dict, Any, List
-from web3 import Web3
-from eth_account import Account
+try:
+    from web3 import Web3  # type: ignore
+    from eth_account import Account  # type: ignore
+    HAS_WEB3 = True
+except ImportError:
+    Web3 = None  # type: ignore
+    Account = None  # type: ignore
+    HAS_WEB3 = False
+
 from ..utils.logger import get_logger
 import os
 
@@ -34,20 +41,25 @@ class BlockchainAuditService:
         self.private_key = os.getenv("BLOCKCHAIN_PRIVATE_KEY")
         
         # Initialize Web3
-        try:
-            self.w3 = Web3(Web3.HTTPProvider(self.provider_url))
-            self.connected = self.w3.is_connected()
-            
-            if self.connected:
-                logger.info(f"✅ Connected to blockchain at {self.provider_url}")
-                logger.info(f"Block number: {self.w3.eth.block_number}")
-            else:
-                logger.warning(f"❌ Failed to connect to blockchain at {self.provider_url}")
-                
-        except Exception as e:
-            logger.error(f"Blockchain initialization error: {e}")
+        if not HAS_WEB3:
+            logger.warning("Web3 dependencies not installed; blockchain operations will use local fallback")
             self.connected = False
             self.w3 = None
+        else:
+            try:
+                self.w3 = Web3(Web3.HTTPProvider(self.provider_url))
+                self.connected = self.w3.is_connected()
+                
+                if self.connected:
+                    logger.info(f"✅ Connected to blockchain at {self.provider_url}")
+                    logger.info(f"Block number: {self.w3.eth.block_number}")
+                else:
+                    logger.warning(f"❌ Failed to connect to blockchain at {self.provider_url}")
+                    
+            except Exception as e:
+                logger.error(f"Blockchain initialization error: {e}")
+                self.connected = False
+                self.w3 = None
         
         # Contract ABI for FraudAuditLog smart contract
         self.contract_abi = [

@@ -78,7 +78,7 @@ const Dashboard = ({
               <div className="tags">
                 {pipeline.tags?.map((tag) => <span key={tag} className="tag">{tag}</span>)}
               </div>
-              <span className="btn-link" aria-hidden="true">View pipeline -></span>
+              <span className="btn-link" aria-hidden="true">View pipeline -&gt;</span>
             </button>
           ))}
         </div>
